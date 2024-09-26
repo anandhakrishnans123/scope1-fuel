@@ -64,7 +64,12 @@ def process_ssl_data(client_data, template_workbook_path, column_mapping, output
     final_data.dropna(subset=['Res_Date'], inplace=True)
     final_data.dropna(subset=['Activity'], inplace=True)
     final_data = final_data[final_data['Activity'] != 0]
-    final_data['Fuel Type'].replace({'LFO Consumed (in MT)': 'LFO', 'HFO Consumed (in MT)': 'HFO', 'DGO Consumed (in MT)': 'DGO'}, inplace=True)
+    final_data['Fuel Type'].replace({
+    'LFO Consumed (in MT)': 'LFO',
+    'HFO Consumed (in MT)': 'HFO',
+    'DGO Consumed (in MT)': 'DGO'
+}, inplace=True)
+ 
     final_data = final_data.dropna(subset=["Fuel Consumption"])
 
     return final_data
