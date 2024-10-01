@@ -3,8 +3,7 @@ import pandas as pd
 import random
 from io import BytesIO
 
-# Define functions for each step
-
+# Function to merge sheets from an Excel file
 def merge_sheets(file_path, sheets_to_merge):
     merged_data = pd.DataFrame()
     for sheet_name in sheets_to_merge:
@@ -12,6 +11,7 @@ def merge_sheets(file_path, sheets_to_merge):
         merged_data = pd.concat([merged_data, df], ignore_index=True)
     return merged_data
 
+# Function to process fuel data for the FZE entity
 def process_fuel_data(client_data, template_workbook_path, column_mapping, output_path, sheet_name):
     template_df = pd.read_excel(template_workbook_path, sheet_name=None)
     template_data = template_df[sheet_name]
@@ -27,12 +27,13 @@ def process_fuel_data(client_data, template_workbook_path, column_mapping, outpu
     if 'Start Date' in client_data.columns:
         matched_data['Res_Date'] = pd.to_datetime(matched_data['Res_Date']).dt.date
 
+    # Fill missing values with random choices
     matched_data['Activity Unit'] = matched_data['Activity Unit'].apply(lambda x: random.choice(['Litres']) if pd.isna(x) else x)
     matched_data['Fuel Unit'] = matched_data['Fuel Unit'].apply(lambda x: random.choice(['Litres']) if pd.isna(x) else x)
     matched_data['CF Factor'] = matched_data['CF Factor'].apply(lambda x: random.choice(['IMO']) if pd.isna(x) else x)
     matched_data['GAS Type'] = matched_data['GAS Type'].apply(lambda x: random.choice(['CO2']) if pd.isna(x) else x)
     matched_data['Activity'] = matched_data['Activity'].apply(lambda x: random.choice([0.001]) if pd.isna(x) else x)
-    matched_data['Fuel Type'] = matched_data['Fuel Type'].apply(lambda x: random.choice(['Desiel']) if pd.isna(x) else x)
+    matched_data['Fuel Type'] = matched_data['Fuel Type'].apply(lambda x: random.choice(['Diesel']) if pd.isna(x) else x)
     matched_data['Source'] = matched_data['Facility']
 
     final_data = pd.concat([preserved_header, matched_data], ignore_index=True)
@@ -40,10 +41,7 @@ def process_fuel_data(client_data, template_workbook_path, column_mapping, outpu
 
     final_data.to_excel(output_path, index=False)
 
-import pandas as pd
-import random
-import streamlit as st
-
+# Function to process SSL data
 def process_ssl_data(client_data, template_workbook_path, column_mapping, output_path, sheet_name):
     template_df = pd.read_excel(template_workbook_path, sheet_name=None)
     template_data = template_df[sheet_name]
@@ -84,7 +82,7 @@ def process_ssl_data(client_data, template_workbook_path, column_mapping, output
 
     return final_data
 
-# Streamlit app
+# Streamlit app setup
 st.title('Fuel Data Processing')
 
 # Dropdown menu to select the entity
@@ -126,10 +124,10 @@ if uploaded_file is not None and entity != 'Select':
         process_fuel_data(client_data, template_path, column_mapping, output_path, 'Fuel Type')
     elif entity == 'SSL':
         ssl_data_melted = client_data.melt(id_vars=['Location/Unit/Factory ID', 'Start Date', 'End Date', 'Vessel Name',
-               'Vessel Category', 'Vessel Type', 'Distance travelled (In NM)'],
-                        value_vars=['DGO Consumed (in MT)', 'HFO Consumed (in MT)', 'LFO Consumed (in MT)'],
-                        var_name='Fuel Type',
-                        value_name='Consumed (in MT)')
+                                                      'Vessel Category', 'Vessel Type', 'Distance travelled (In NM)'],
+                                             value_vars=['DGO Consumed (in MT)', 'HFO Consumed (in MT)', 'LFO Consumed (in MT)'],
+                                             var_name='Fuel Type',
+                                             value_name='Consumed (in MT)')
         
         # Process SSL data
         final_data = process_ssl_data(ssl_data_melted, template_path, column_mapping, output_path, 'Fuel Type')
