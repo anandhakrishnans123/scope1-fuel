@@ -40,6 +40,10 @@ def process_fuel_data(client_data, template_workbook_path, column_mapping, outpu
 
     final_data.to_excel(output_path, index=False)
 
+import pandas as pd
+import random
+import streamlit as st
+
 def process_ssl_data(client_data, template_workbook_path, column_mapping, output_path, sheet_name):
     template_df = pd.read_excel(template_workbook_path, sheet_name=None)
     template_data = template_df[sheet_name]
@@ -64,12 +68,18 @@ def process_ssl_data(client_data, template_workbook_path, column_mapping, output
     final_data.dropna(subset=['Res_Date'], inplace=True)
     final_data.dropna(subset=['Activity'], inplace=True)
     final_data = final_data[final_data['Activity'] != 0]
-    final_data['Fuel Type'].replace({
-    'LFO Consumed (in MT)': 'LFO',
-    'HFO Consumed (in MT)': 'HFO',
-    'DGO Consumed (in MT)': 'DGO'
-}, inplace=True)
- 
+
+    # Ensure 'Fuel Type' is a string and strip leading/trailing spaces
+    if 'Fuel Type' in final_data.columns:
+        final_data['Fuel Type'] = final_data['Fuel Type'].astype(str).str.strip()
+
+        # Replace specific values
+        final_data['Fuel Type'].replace({
+            'LFO Consumed (in MT)': 'LFO',
+            'HFO Consumed (in MT)': 'HFO',
+            'DGO Consumed (in MT)': 'DGO'
+        }, inplace=True)
+
     final_data = final_data.dropna(subset=["Fuel Consumption"])
 
     return final_data
@@ -88,29 +98,30 @@ if uploaded_file is not None and entity != 'Select':
     if entity == 'FZE':
         sheets = ['FORKLIFT-16934', 'FORKLIFT-16935']
         column_mapping = {
-            'End Date':'Res_Date',
+            'End Date': 'Res_Date',
             'Remark': 'Facility',
-            'Fuel Consumed (Litres)':'Fuel Consumption'
+            'Fuel Consumed (Litres)': 'Fuel Consumption'
         }
         template_path = 'Fuel-Type-Sample_scope1.xlsx'
         output_path = "output_client.xlsx"
     elif entity == 'SSL':
-        sheets = ['TBC BADRINATH', 'TBC KAILASH', 'SSL KRISHNA','SSL VISHAKAPATNAM',
-                  'SSL MUMBAI','SSL BRAMHAPUTRA','SSL GANGA','SSL BHARAT','SSL SABRIMALAI',
-                  'SSL GUJARAT','SSL DELHI','SSL GODAVARI','SSL THAMIRABARANI']
+        sheets = ['TBC BADRINATH', 'TBC KAILASH', 'SSL KRISHNA', 'SSL VISHAKAPATNAM',
+                  'SSL MUMBAI', 'SSL BRAMHAPUTRA', 'SSL GANGA', 'SSL BHARAT', 'SSL SABRIMALAI',
+                  'SSL GUJARAT', 'SSL DELHI', 'SSL GODAVARI', 'SSL THAMIRABARANI']
         column_mapping = {
-            'Start Date':'Res_Date',
-            'Vessel Name':'Facility',
-            'Vessel Type':'Source',
+            'Start Date': 'Res_Date',
+            'Vessel Name': 'Facility',
+            'Vessel Type': 'Source',
             'Distance travelled (In NM)': 'Activity',
-            'Fuel Type':"Fuel Type",
-            'Consumed (in MT)':'Fuel Consumption'
+            'Fuel Type': "Fuel Type",
+            'Consumed (in MT)': 'Fuel Consumption'
         }
         template_path = 'Fuel-Type-Sample_scope1.xlsx'
         output_path = "output_client.xlsx"
 
     # Process the uploaded file
     client_data = merge_sheets(uploaded_file, sheets)
+    
     if entity == 'FZE':
         process_fuel_data(client_data, template_path, column_mapping, output_path, 'Fuel Type')
     elif entity == 'SSL':
@@ -119,10 +130,14 @@ if uploaded_file is not None and entity != 'Select':
                         value_vars=['DGO Consumed (in MT)', 'HFO Consumed (in MT)', 'LFO Consumed (in MT)'],
                         var_name='Fuel Type',
                         value_name='Consumed (in MT)')
-        ssl_data_melted.to_excel(output_path, index=False)
+        
+        # Process SSL data
         final_data = process_ssl_data(ssl_data_melted, template_path, column_mapping, output_path, 'Fuel Type')
+        
+        # Save processed data to Excel
+        final_data.to_excel(output_path, index=False)
 
-    st.write(f'{entity} Data processed and saved.')
+    st.write(f'{entity} Data processed and saved to {output_path}.')
 
     # Provide download link
     def get_file_download_link(file_path):
