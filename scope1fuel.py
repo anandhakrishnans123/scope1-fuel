@@ -45,6 +45,9 @@ def process_fuel_data(client_data, template_workbook_path, column_mapping, outpu
 import pandas as pd
 import random
 
+import pandas as pd
+import random
+
 def process_ssl_data(client_data, template_workbook_path, column_mapping, output_path, sheet_name):
     # Load the template workbook and get the specified sheet
     template_df = pd.read_excel(template_workbook_path, sheet_name=None)
@@ -61,15 +64,19 @@ def process_ssl_data(client_data, template_workbook_path, column_mapping, output
         if client_col in client_data.columns and template_col in template_data.columns:
             matched_data[template_col] = client_data[client_col]
 
-    # Add the new columns: Start Date, End Date, and Department
-    # Ensuring columns are positioned correctly: Department before Facility, Start Date, and End Date after Facility
-    matched_data.insert(matched_data.columns.get_loc('Facility'), 'Department', client_data.get('Department', None))
-    matched_data.insert(matched_data.columns.get_loc('Facility') + 1, 'Start Date', client_data.get('Start Date', None))
-    matched_data.insert(matched_data.columns.get_loc('Facility') + 2, 'End Date', client_data.get('End Date', None))
+    # Insert the new columns in the specified positions
+    # 'Department' as the 2nd column
+    matched_data.insert(1, 'Department', client_data.get('Department', None))
+    # 'Start Date' as the 4th column
+    matched_data.insert(3, 'Start Date', None)
+    # 'End Date' immediately following 'Start Date'
+    matched_data.insert(4, 'End Date', None)
 
-    # Format 'Res_Date' column if present
+    # Format 'Res_Date' and copy its value into 'Start Date' and 'End Date'
     if 'Res_Date' in matched_data.columns:
         matched_data['Res_Date'] = pd.to_datetime(matched_data['Res_Date']).dt.date
+        matched_data['Start Date'] = matched_data['Res_Date']
+        matched_data['End Date'] = matched_data['Res_Date']
 
     # Apply default values for missing entries
     matched_data['Activity Unit'] = matched_data['Activity Unit'].apply(lambda x: random.choice(['MT']) if pd.isna(x) else x)
@@ -98,6 +105,7 @@ def process_ssl_data(client_data, template_workbook_path, column_mapping, output
     final_data = final_data.dropna(subset=["Fuel Consumption"])
 
     return final_data
+
 
 
 # Streamlit app setup
