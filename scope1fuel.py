@@ -78,8 +78,9 @@ def process_ssl_data(client_data, template_workbook_path, column_mapping, output
             'DGO Consumed (in MT)': 'DGO'
         }, inplace=True)
     final_data.insert(1, 'Department', "")
-    final_data.insert(4, 'Start Date', final_data['Res_Date'])
-    final_data.insert(4, 'End Date', final_data['Res_Date'])
+    
+    final_data.insert(3, 'End Date', final_data['Res_Date'])
+    final_data.insert(3, 'Start Date', final_data['Res_Date'])
     
     
     final_data = final_data.dropna(subset=["Fuel Consumption"])
