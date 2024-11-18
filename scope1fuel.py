@@ -42,27 +42,45 @@ def process_fuel_data(client_data, template_workbook_path, column_mapping, outpu
     final_data.to_excel(output_path, index=False)
 
 # Function to process SSL data
+import pandas as pd
+import random
+
 def process_ssl_data(client_data, template_workbook_path, column_mapping, output_path, sheet_name):
+    # Load the template workbook and get the specified sheet
     template_df = pd.read_excel(template_workbook_path, sheet_name=None)
     template_data = template_df[sheet_name]
-
+    
+    # Preserve the header structure of the template
     preserved_header = template_data.iloc[:0, :]
 
+    # Prepare the matched_data DataFrame with the template's column order
     matched_data = pd.DataFrame(columns=template_data.columns)
 
+    # Map client data columns to template columns
     for client_col, template_col in column_mapping.items():
         if client_col in client_data.columns and template_col in template_data.columns:
             matched_data[template_col] = client_data[client_col]
 
-    if 'Start Date' in client_data.columns:
+    # Add the new columns: Start Date, End Date, and Department
+    # Ensuring columns are positioned correctly: Department before Facility, Start Date, and End Date after Facility
+    matched_data.insert(matched_data.columns.get_loc('Facility'), 'Department', client_data.get('Department', None))
+    matched_data.insert(matched_data.columns.get_loc('Facility') + 1, 'Start Date', client_data.get('Start Date', None))
+    matched_data.insert(matched_data.columns.get_loc('Facility') + 2, 'End Date', client_data.get('End Date', None))
+
+    # Format 'Res_Date' column if present
+    if 'Res_Date' in matched_data.columns:
         matched_data['Res_Date'] = pd.to_datetime(matched_data['Res_Date']).dt.date
 
+    # Apply default values for missing entries
     matched_data['Activity Unit'] = matched_data['Activity Unit'].apply(lambda x: random.choice(['MT']) if pd.isna(x) else x)
     matched_data['Fuel Unit'] = matched_data['Fuel Unit'].apply(lambda x: random.choice(['MT']) if pd.isna(x) else x)
     matched_data['CF Factor'] = matched_data['CF Factor'].apply(lambda x: random.choice(['IMO']) if pd.isna(x) else x)
     matched_data['GAS Type'] = matched_data['GAS Type'].apply(lambda x: random.choice(['CO2']) if pd.isna(x) else x)
 
+    # Concatenate the preserved header with the processed data
     final_data = pd.concat([preserved_header, matched_data], ignore_index=True)
+    
+    # Drop rows with missing or invalid values
     final_data.dropna(subset=['Res_Date'], inplace=True)
     final_data.dropna(subset=['Activity'], inplace=True)
     final_data = final_data[final_data['Activity'] != 0]
@@ -70,17 +88,17 @@ def process_ssl_data(client_data, template_workbook_path, column_mapping, output
     # Ensure 'Fuel Type' is a string and strip leading/trailing spaces
     if 'Fuel Type' in final_data.columns:
         final_data['Fuel Type'] = final_data['Fuel Type'].astype(str).str.strip()
-
-        # Replace specific values
         final_data['Fuel Type'].replace({
             'LFO Consumed (in MT)': 'LFO',
             'HFO Consumed (in MT)': 'HFO',
             'DGO Consumed (in MT)': 'DGO'
         }, inplace=True)
 
+    # Drop rows with missing 'Fuel Consumption'
     final_data = final_data.dropna(subset=["Fuel Consumption"])
 
     return final_data
+
 
 # Streamlit app setup
 st.title('Fuel Data Processing')
